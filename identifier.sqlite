@@ -1,0 +1,65 @@
+-- USERS TABLE
+CREATE TABLE Users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    age INTEGER CHECK (age >= 0),
+    gender TEXT CHECK (gender IN ('Male', 'Female')),
+    weight REAL CHECK (weight >= 0),
+    height REAL CHECK (height >= 0)
+);
+
+-- DAILY REPORTS TABLE
+CREATE TABLE Daily_Reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    mood_score INTEGER CHECK (mood_score BETWEEN 1 AND 10),
+    bmi REAL,
+    bmr REAL,
+    caloric_intake REAL CHECK (caloric_intake >= 0),
+    journal_log TEXT,
+
+    -- Prevent duplicate entries for the same day
+    UNIQUE (user_id, date),
+
+    FOREIGN KEY (user_id) REFERENCES Users(id)
+);
+
+-- MEDICATION INFO TABLE
+CREATE TABLE Medication_Info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    med_name TEXT NOT NULL,
+    daily_req INTEGER CHECK (daily_req >= 0),
+    dosage TEXT,
+    note TEXT,
+
+    FOREIGN KEY (user_id) REFERENCES Users(id)
+);
+
+-- MEDICATION LOG TABLE
+CREATE TABLE Medication_Log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    report_id INTEGER NOT NULL,
+    medication_id INTEGER NOT NULL,
+    status TEXT CHECK (status IN ('Taken', 'Skipped', 'Missed')),
+    date TEXT NOT NULL,
+
+    FOREIGN KEY (user_id) REFERENCES Users(id),
+    FOREIGN KEY (report_id) REFERENCES Daily_Reports(id),
+    FOREIGN KEY (medication_id) REFERENCES Medication_Info(id)
+);
+
+-- MEDICATION SCHEDULE TABLE
+CREATE TABLE Medication_Schedule (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    medication_id INTEGER NOT NULL,
+    time TEXT NOT NULL,
+    status TEXT CHECK (status IN ('Active', 'Stopped')),
+
+    FOREIGN KEY (user_id) REFERENCES Users(id),
+    FOREIGN KEY (medication_id) REFERENCES Medication_Info(id)
+);

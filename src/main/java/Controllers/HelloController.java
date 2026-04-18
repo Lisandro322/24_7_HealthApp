@@ -1,4 +1,4 @@
-package org.example._4_7_healthapp;
+package Controllers;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
