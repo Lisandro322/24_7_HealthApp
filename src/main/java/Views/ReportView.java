@@ -27,6 +27,7 @@ public class ReportView {
         VBox mainLayout = new VBox(20);
         mainLayout.setPadding(new Insets(20));
         mainLayout.setAlignment(Pos.TOP_CENTER);
+        mainLayout.setStyle("-fx-background-color: #FFFDE7;");
 
         // --- SECTION 1: HEADER (Name & Date) ---
         VBox header = new VBox(5);
@@ -36,6 +37,7 @@ public class ReportView {
         String formattedDate = LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM d"));
         dateLabel.setText(formattedDate);
         dateLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        nameLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #5D4037;");
 
         header.getChildren().addAll(nameLabel, dateLabel);
 
@@ -77,12 +79,17 @@ public class ReportView {
         journalArea.setPromptText("How was your day? Any specific notes on symptoms or activities?");
         journalArea.setPrefRowCount(8);
         journalArea.setWrapText(true);
+        bmiDisplay.setStyle("-fx-font-weight: bold; -fx-text-fill: #2E7D32;");
+        bmrDisplay.setStyle("-fx-font-weight: bold; -fx-text-fill: #1565C0;");
+        caloricTotalLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        journalArea.setStyle("-fx-control-inner-background: #FFFFFF; -fx-border-color: #FDD835;");
 
         // --- SECTION 3: FOOTER BUTTONS ---
         HBox actionButtons = new HBox(20, saveBtn, cancelBtn);
         actionButtons.setAlignment(Pos.CENTER);
         saveBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;");
         cancelBtn.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
+
 
         // Assemble all parts
         mainLayout.getChildren().addAll(header, new Separator(), form, journalBox, actionButtons);

@@ -1,60 +1,78 @@
 package Controllers;
 
+import Main.Main;
 import Views.*;
 import javafx.scene.Node;
+import Models.User;
 
 public class MenuController {
     private final MainLayoutView mainLayout;
+    private final Main mainApp;
+    private User activeUser;
 
-    // Partial Views
+    // Views
     private final DefaultView defaultView;
     private final UserMedView userMedView;
     private final ReportView reportsView;
     private final GraphsView historyView;
 
-    public MenuController(MainLayoutView mainLayout) {
-        this.mainLayout = mainLayout;
+    // Sub-Controllers
+    private final UserMedController userMedController;
+    private final ReportController reportController;
+    private final DefaultController defaultController; // Added
 
-        // Initialize partial views
+    public MenuController(MainLayoutView mainLayout, User activeUser, Main mainApp) {
+        this.mainLayout = mainLayout;
+        this.mainApp = mainApp;
+        this.activeUser = activeUser;
+
+        // 1. Initialize Views (These now build their UI once in the constructor)
         this.defaultView = new DefaultView();
         this.userMedView = new UserMedView();
         this.reportsView = new ReportView();
         this.historyView = new GraphsView();
 
-        // Attach listeners to the renamed buttons
+        // 2. Initialize Sub-Controllers
+        this.userMedController = new UserMedController(userMedView, activeUser);
+        this.reportController = new ReportController(reportsView, activeUser);
+        this.defaultController = new DefaultController(defaultView, activeUser); // Added
+
         setupNavigation();
 
-        // Set the initial screen
+        // Start on the home screen
         switchMenu(MenuState.DEFAULT);
     }
 
     private void setupNavigation() {
-        // Connect UserInfo to UserMedView
         mainLayout.userInfoBtn.setOnAction(e -> switchMenu(MenuState.USER_MEDICATION));
-
-        // Connect ReportInfo to GraphsView (History)
         mainLayout.reportInfoBtn.setOnAction(e -> switchMenu(MenuState.GRAPHS_HISTORY));
-
-        // Connect EditReport to ReportsView (The Form)
         mainLayout.editReportBtn.setOnAction(e -> switchMenu(MenuState.REPORTS));
-
-        // Connect Return to DefaultView
         mainLayout.returnBtn.setOnAction(e -> switchMenu(MenuState.DEFAULT));
+        mainLayout.switchUserBtn.setOnAction(e -> mainApp.showUserSelection());
     }
 
     public void switchMenu(MenuState newState) {
         Node nextView;
 
-        // Routing logic based on your new requirements
         switch (newState) {
-            case USER_MEDICATION -> nextView = userMedView.getView(); // User info & Med table
-            case GRAPHS_HISTORY -> nextView = historyView.getView();  // Report Info (Graphs)
-            case REPORTS -> nextView = reportsView.getView();         // Edit Report (The Form)
-            case DEFAULT -> nextView = defaultView.getView();         // Home screen
-            default -> nextView = defaultView.getView();
+            case USER_MEDICATION -> {
+                userMedController.refreshMedTable();
+                nextView = userMedView.getView();
+            }
+            case REPORTS -> {
+                reportController.initializeTodayReport();
+                nextView = reportsView.getView();
+            }
+            case GRAPHS_HISTORY -> {
+                nextView = historyView.getView();
+            }
+            default -> {
+                // Refresh the dashboard table when returning home
+                defaultController.refreshScheduleTable();
+                nextView = defaultView.getView();
+            }
         }
 
-        // Inject the chosen view into the center of the scrollable main layout
         mainLayout.setCenterView(nextView);
     }
 }

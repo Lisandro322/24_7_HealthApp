@@ -1,6 +1,6 @@
 package Models;
 
-public class UserInfo {
+public class User {
     //Attribute
     private int id;
     private String firstName;
@@ -11,9 +11,9 @@ public class UserInfo {
     private double height;
 
     // Constructor
-    public UserInfo() {}
+    public User() {}
 
-    public UserInfo(int id, String firstName, String lastName, int age, String gender, double weight, double height) {
+    public User(int id, String firstName, String lastName, int age, String gender, double weight, double height) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;

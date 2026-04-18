@@ -8,6 +8,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 
 public class DefaultView {
+    private VBox mainLayout;
 
     // Components exposed for the Controller
     public Label welcomeLabel = new Label("Welcome, User!");
@@ -19,13 +20,21 @@ public class DefaultView {
     public Button takenBtn = new Button("Taken");
     public Button silenceBtn = new Button("Silence");
 
-    // TODO: REMOVE THIS TEST BUTTON LATER
+    // DEBUG: Trigger Test Alert
     public Button triggerTestAlertBtn = new Button("DEBUG: Trigger Alert");
 
-    public VBox getView() {
-        VBox mainLayout = new VBox(25);
+    public DefaultView() {
+        // Build the UI exactly once when the class is instantiated
+        buildUI();
+    }
+
+    private void buildUI() {
+        mainLayout = new VBox(25);
         mainLayout.setPadding(new Insets(20));
         mainLayout.setAlignment(Pos.TOP_CENTER);
+
+        // Match the Soft Yellow Theme of other views
+        mainLayout.setStyle("-fx-background-color: #FFFDE7;");
 
         // --- SECTION 1: WELCOME HEADER ---
         VBox header = new VBox(5);
@@ -34,7 +43,6 @@ public class DefaultView {
         header.getChildren().add(welcomeLabel);
 
         // --- SECTION 2: MEDICATION ALERT (Contextual) ---
-        // This box will pop up at the top when a medication is due
         alertBox.setAlignment(Pos.CENTER);
         alertBox.setPadding(new Insets(20));
         alertBox.setStyle("-fx-background-color: #FFF176; -fx-border-color: #FBC02D; " +
@@ -64,16 +72,16 @@ public class DefaultView {
         TableColumn<MedicationSchedule, String> timeCol = new TableColumn<>("Time");
         timeCol.setCellValueFactory(new PropertyValueFactory<>("time"));
 
-        TableColumn<MedicationSchedule, String> medCol = new TableColumn<>("Medication");
-        // Note: You may need a custom CellFactory if MedicationSchedule only holds the ID
-        medCol.setCellValueFactory(new PropertyValueFactory<>("medicationId"));
+        TableColumn<MedicationSchedule, String> medCol = new TableColumn<>("Medication Name");
+        medCol.setCellValueFactory(new PropertyValueFactory<>("medicationName"));
 
         TableColumn<MedicationSchedule, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
 
-        todayScheduleTable.getColumns().addAll(timeCol, medCol, statusCol);
+        todayScheduleTable.getColumns().setAll(timeCol, medCol, statusCol);
         todayScheduleTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         todayScheduleTable.setPrefHeight(250);
+        todayScheduleTable.setStyle("-fx-selection-bar: #FFF59D;");
 
         tableSection.getChildren().addAll(tableTitle, todayScheduleTable);
 
@@ -81,9 +89,15 @@ public class DefaultView {
         HBox debugBox = new HBox(triggerTestAlertBtn);
         debugBox.setAlignment(Pos.CENTER);
 
-        // Assemble
+        // Assemble all components into the mainLayout field
         mainLayout.getChildren().addAll(header, debugBox, alertBox, tableSection);
+    }
 
+    /**
+     * Returns the pre-built layout.
+     * Crucial: Does NOT call addAll() again.
+     */
+    public VBox getView() {
         return mainLayout;
     }
 }
