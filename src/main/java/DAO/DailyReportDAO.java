@@ -3,6 +3,8 @@ package DAO;
 import DB.DatabaseHelper;
 import Models.DailyReport;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DailyReportDAO {
 
@@ -48,6 +50,21 @@ public class DailyReportDAO {
             System.err.println("Error fetching report by date: " + e.getMessage());
         }
         return null; // Return null if no report exists for today yet
+    }
+    public List<DailyReport> getReportsInRange(int userId, String startDate, String endDate) {
+        List<DailyReport> list = new ArrayList<>();
+        String sql = "SELECT * FROM Daily_Reports WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date ASC";
+        try (Connection conn = DatabaseHelper.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userId);
+            pstmt.setString(2, startDate);
+            pstmt.setString(3, endDate);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                list.add(mapResultSetToReport(rs)); // Use your existing mapper
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
     }
 
     /**

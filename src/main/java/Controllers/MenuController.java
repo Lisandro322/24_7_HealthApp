@@ -19,14 +19,15 @@ public class MenuController {
     // Sub-Controllers
     private final UserMedController userMedController;
     private final ReportController reportController;
-    private final DefaultController defaultController; // Added
+    private final DefaultController defaultController;
+    private final GraphsController graphsController;
 
     public MenuController(MainLayoutView mainLayout, User activeUser, Main mainApp) {
         this.mainLayout = mainLayout;
         this.mainApp = mainApp;
         this.activeUser = activeUser;
 
-        // 1. Initialize Views (These now build their UI once in the constructor)
+        // 1. Initialize Views
         this.defaultView = new DefaultView();
         this.userMedView = new UserMedView();
         this.reportsView = new ReportView();
@@ -35,7 +36,12 @@ public class MenuController {
         // 2. Initialize Sub-Controllers
         this.userMedController = new UserMedController(userMedView, activeUser);
         this.reportController = new ReportController(reportsView, activeUser);
-        this.defaultController = new DefaultController(defaultView, activeUser); // Added
+        this.defaultController = new DefaultController(defaultView, activeUser);
+        this.graphsController = new GraphsController(historyView, activeUser);
+
+        // --- CRITICAL LINK FOR NAVIGATION ---
+        // This allows ReportController to call switchMenu(MenuState.DEFAULT)
+        this.reportController.setMenuController(this);
 
         setupNavigation();
 
@@ -48,6 +54,8 @@ public class MenuController {
         mainLayout.reportInfoBtn.setOnAction(e -> switchMenu(MenuState.GRAPHS_HISTORY));
         mainLayout.editReportBtn.setOnAction(e -> switchMenu(MenuState.REPORTS));
         mainLayout.returnBtn.setOnAction(e -> switchMenu(MenuState.DEFAULT));
+
+        // Switch User: Returns to the selection screen in Main
         mainLayout.switchUserBtn.setOnAction(e -> mainApp.showUserSelection());
     }
 
@@ -64,15 +72,21 @@ public class MenuController {
                 nextView = reportsView.getView();
             }
             case GRAPHS_HISTORY -> {
+                // Refresh graph data whenever entering the history screen
+                graphsController.refresh();
                 nextView = historyView.getView();
             }
             default -> {
-                // Refresh the dashboard table when returning home
+                // Refresh dashboard table when returning home
                 defaultController.refreshScheduleTable();
+
+                // Update welcome message
+                defaultView.welcomeLabel.setText("Welcome, " + activeUser.getFirstName() + "!");
                 nextView = defaultView.getView();
             }
         }
 
+        // Push the selected view into the scrollable center area
         mainLayout.setCenterView(nextView);
     }
 }

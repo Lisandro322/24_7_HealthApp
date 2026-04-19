@@ -10,6 +10,7 @@ public class ReportController {
     private final ReportView view;
     private final User activeUser;
     private final DailyReportDAO reportDAO = new DailyReportDAO();
+    private MenuController menuController;
 
     private DailyReport currentReport;
     private double totalCalories = 0.0;
@@ -17,15 +18,14 @@ public class ReportController {
     public ReportController(ReportView view, User activeUser) {
         this.view = view;
         this.activeUser = activeUser;
-
         initializeTodayReport();
         setupActions();
     }
 
-    /**
-     * Resets or loads the report for the current date.
-     * Public so MenuController can trigger a refresh when switching tabs.
-     */
+    public void setMenuController(MenuController menuController) {
+        this.menuController = menuController;
+    }
+
     public void initializeTodayReport() {
         String today = LocalDate.now().toString();
         DailyReport existing = reportDAO.getReportByDate(activeUser.getId(), today);
@@ -37,11 +37,10 @@ public class ReportController {
             currentReport = new DailyReport();
             currentReport.setUserId(activeUser.getId());
             currentReport.setDate(today);
-            currentReport.setMoodScore(5); // Default middle value
+            currentReport.setMoodScore(5);
             currentReport.setJournalLog("");
             this.totalCalories = 0.0;
         }
-
         calculateAndSetHealthMetrics();
         refreshView();
     }
@@ -51,81 +50,79 @@ public class ReportController {
         double heightMeters = activeUser.getHeight() / 100.0;
         if (heightMeters > 0) {
             double bmi = activeUser.getWeight() / (heightMeters * heightMeters);
-            currentReport.setBmi(bmi);
+            currentReport.setBmi(Math.round(bmi * 100.0) / 100.0);
         }
 
-        // 2. BMR Calculation (Mifflin-St Jeor Equation)
-        double bmr;
+        // 2. Base BMR Calculation (Mifflin-St Jeor)
+        double baseBmr;
         double w = activeUser.getWeight();
         double h = activeUser.getHeight();
         int a = activeUser.getAge();
 
         if ("Male".equalsIgnoreCase(activeUser.getGender())) {
-            bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
+            baseBmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
         } else {
-            bmr = (10 * w) + (6.25 * h) - (5 * a) - 161;
+            baseBmr = (10 * w) + (6.25 * h) - (5 * a) - 161;
         }
-        currentReport.setBmr(bmr);
+
+        // 3. Apply Multiplier (TDEE) and save as "BMR"
+        double multiplier = getActivityMultiplier(view.activityCombo.getValue());
+        double tdee = baseBmr * multiplier;
+        currentReport.setBmr(Math.round(tdee * 100.0) / 100.0);
+
+        // Update display
+        view.bmrDisplay.setText(String.format("%.2f kcal", currentReport.getBmr()));
+    }
+
+    private double getActivityMultiplier(String level) {
+        if (level.contains("Lightly")) return 1.375;
+        if (level.contains("Moderately")) return 1.55;
+        if (level.contains("Very Active")) return 1.725;
+        if (level.contains("Extra Active")) return 1.9;
+        return 1.2; // Sedentary (Default)
     }
 
     private void refreshView() {
-        // Header
         view.nameLabel.setText("User: " + activeUser.getFirstName() + " " + activeUser.getLastName());
-
-        // Stats
         view.bmiDisplay.setText(String.format("%.2f", currentReport.getBmi()));
-        view.bmrDisplay.setText(String.format("%.2f", currentReport.getBmr()));
-        view.caloricTotalLabel.setText(String.format("%.1f", totalCalories));
-
-        // Form Fields
+        view.caloricTotalLabel.setText(String.format("%.2f", totalCalories));
         view.moodSlider.setValue(currentReport.getMoodScore());
         view.moodValueLabel.setText(String.valueOf(currentReport.getMoodScore()));
         view.journalArea.setText(currentReport.getJournalLog());
     }
 
     private void setupActions() {
-        // Update the mood number as the slider moves
-        view.moodSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            view.moodValueLabel.setText(String.valueOf(newVal.intValue()));
-        });
+        // Sync mood label with slider
+        view.moodSlider.valueProperty().addListener((obs, old, newVal) ->
+                view.moodValueLabel.setText(String.valueOf(newVal.intValue())));
 
-        // Add Calories Logic
+        // Recalculate BMR/TDEE on dropdown change
+        view.activityCombo.setOnAction(e -> calculateAndSetHealthMetrics());
+
+        // Calorie Input
         view.addCalorieBtn.setOnAction(e -> {
             String input = view.caloricInput.getText();
             if (input.matches("\\d+(\\.\\d+)?")) {
-                double addedCals = Double.parseDouble(input);
-                totalCalories += addedCals;
-                view.caloricTotalLabel.setText(String.format("%.1f", totalCalories));
+                double added = Double.parseDouble(input);
+                totalCalories += added;
+                totalCalories = Math.round(totalCalories * 100.0) / 100.0;
+                view.caloricTotalLabel.setText(String.format("%.2f", totalCalories));
                 view.caloricInput.clear();
-            } else {
-                showWarning("Invalid Input", "Please enter a numeric value for calories.");
             }
         });
 
-        // Save Logic
+        // Save and Navigate Home
         view.saveBtn.setOnAction(e -> {
             currentReport.setMoodScore((int) view.moodSlider.getValue());
             currentReport.setCaloricIntake(totalCalories);
             currentReport.setJournalLog(view.journalArea.getText());
-
             reportDAO.upsertReport(currentReport);
-
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Success");
-            alert.setHeaderText(null);
-            alert.setContentText("Daily report saved for " + currentReport.getDate());
-            alert.showAndWait();
+            if (menuController != null) menuController.switchMenu(MenuState.DEFAULT);
         });
 
-        // Cancel Logic - Reverts changes to the last saved state
-        view.cancelBtn.setOnAction(e -> initializeTodayReport());
-    }
-
-    private void showWarning(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+        // Cancel and Navigate Home
+        view.cancelBtn.setOnAction(e -> {
+            if (menuController != null) menuController.switchMenu(MenuState.DEFAULT);
+        });
     }
 }
